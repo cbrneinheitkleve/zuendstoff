@@ -253,6 +253,18 @@ create policy "Protokoll lesen (Admin)" on public.protokoll for select to authen
 revoke all on public.profiles, public.kategorien, public.inhalte,
               public.dateien, public.lesezeichen, public.protokoll from anon;
 
+-- Angemeldete Nutzer bekommen die Grundrechte ausdrücklich zugeteilt
+-- (nötig, wenn "Automatically expose new tables" ausgeschaltet ist).
+-- Was sie davon wirklich dürfen, entscheiden die Regeln oben.
+grant usage on schema public to authenticated;
+grant select, update, delete        on public.profiles    to authenticated;
+grant select, insert, update, delete on public.kategorien  to authenticated;
+grant select, insert, update, delete on public.inhalte     to authenticated;
+grant select, insert, update, delete on public.dateien     to authenticated;
+grant select, insert, delete         on public.lesezeichen to authenticated;
+grant select                         on public.protokoll   to authenticated;
+grant execute on function public.ist_aktiv(), public.ist_admin() to authenticated;
+
 
 -- ------------------------------------------------------------
 -- 6. Dateispeicher "unterlagen" (privat)
