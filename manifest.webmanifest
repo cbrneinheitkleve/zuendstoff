@@ -1,0 +1,16 @@
+{
+  "name": "Zündstoff CBRN",
+  "short_name": "Zündstoff",
+  "description": "Wissensplattform der Sondereinheit CBRN, Feuerwehr Kleve",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#131C33",
+  "theme_color": "#131C33",
+  "lang": "de",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
