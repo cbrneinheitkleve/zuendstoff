@@ -1,6 +1,6 @@
 -- ============================================================
 --  Zündstoff CBRN – Einrichtung der Datenbank in Supabase
---  © 2026 Sondereinheit CBRN · Feuerwehr Kleve
+--  © 2026 Sondereinheit CBRN · Freiwillige Feuerwehr Kleve
 --
 --  Einmal komplett im SQL Editor ausführen (New query → einfügen → Run).
 --  Legt an: Mitgliederprofile mit Freigabe, Kategorien, Inhalte,
