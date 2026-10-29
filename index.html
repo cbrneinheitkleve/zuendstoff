@@ -116,7 +116,18 @@ input,select,textarea{font:400 .95rem var(--f-body);padding:9px 12px;border:1px 
 .claim{font:600 1.15rem/1.35 var(--f-display);text-align:center;margin:0;text-wrap:balance;color:#ECEFF7}
 .claim em{font-style:normal;color:#FF7A3D}
 .unitbadge{font:700 .74rem var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:#FFB089;border:1px solid rgb(255 122 61/.45);border-radius:999px;padding:5px 12px}
-.lcard{width:100%;background:var(--surface);color:var(--fg);border-radius:22px;padding:22px;display:grid;gap:14px;box-shadow:0 20px 50px rgb(0 0 0/.35)}
+.lcard{width:100%;background:rgb(255 255 255/.05);color:#ECEFF7;border:1px solid rgb(255 255 255/.1);border-radius:22px;padding:22px;display:grid;gap:14px;box-shadow:0 20px 50px rgb(0 0 0/.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.login{color-scheme:dark}
+.lcard label{color:#D9DEEA}
+.lcard input:not([type=checkbox]),.lcard select{background:rgb(8 12 26/.55);border:1px solid rgb(255 255 255/.14);color:#ECEFF7}
+.lcard input::placeholder{color:#7F89A6}
+.lcard input:focus-visible,.lcard select:focus-visible{outline:2px solid #FF7A3D;outline-offset:1px;border-color:transparent}
+.lcard input[type=checkbox]{accent-color:#FF6A2B}
+.lcard .meta,.lcard .lswitch,.lcard .or{color:#A9B2CC}
+.lcard .link{color:#FF8A52}
+.lcard .btn:not(.primary){background:rgb(255 255 255/.06);border-color:rgb(255 255 255/.16);color:#ECEFF7}
+.lcard .lerr{background:rgb(255 90 90/.14);color:#FFB3B3}
+.lcard .note{background:rgb(255 122 61/.12);color:#FFD2BC}
 .lcard h2{font-size:1.15rem}
 .btn.block{width:100%;padding:11px 14px;font-size:.98rem}
 .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.82rem}
