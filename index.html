@@ -194,6 +194,10 @@ html,body{height:100%}
 .wb-login .wb-txt b{color:#ECEFF7}
 .wb-copy{flex-basis:100%;text-align:center;font-size:.66rem;margin-top:2px}
 .wb-txt small{font-size:.6rem;letter-spacing:.02em}
+body.laedt{cursor:progress}
+body.laedt::after{content:"";position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);height:3px;z-index:40;background:linear-gradient(90deg,transparent,#FF6A2B,transparent);background-size:40% 100%;background-repeat:no-repeat;animation:ladebalken 1s linear infinite}
+@keyframes ladebalken{from{background-position:-40% 0}to{background-position:140% 0}}
+@media (prefers-reduced-motion:reduce){body.laedt::after{animation:none;background:#FF6A2B}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20}
 .note{background:var(--accent-soft);border-radius:14px;padding:12px 14px;font-size:.92rem}
 ul.clean{list-style:none;padding:0;margin:0;display:grid;gap:6px}
@@ -219,7 +223,6 @@ ul.clean li{display:flex;justify-content:space-between;gap:8px;padding:9px 12px;
       <div class="lrow"><label><input type="checkbox" id="l-keep"> Angemeldet bleiben</label><button class="link" type="button" id="l-forgot">Passwort vergessen?</button></div>
       <div class="note" id="l-info" hidden></div>
       <button class="btn primary block" type="submit">Anmelden</button>
-      <p class="meta" style="margin:0;font-size:.8rem">Im Prototyp funktioniert jede Eingabe. Danach landest du in der Lernplattform.</p>
       <p class="lswitch">Noch kein Konto? <button class="link" type="button" id="toReg">Jetzt registrieren</button></p>
     </form>
     <form class="lcard" id="regform" novalidate hidden>
@@ -236,6 +239,19 @@ ul.clean li{display:flex;justify-content:space-between;gap:8px;padding:9px 12px;
       <button class="btn primary block" type="submit" id="r-submit" disabled>Registrieren</button>
       <p class="lswitch">Schon ein Konto? <button class="link" type="button" id="toLogin">Anmelden</button></p>
     </form>
+    <form class="lcard" id="pwform" novalidate hidden>
+      <h2>Neues Passwort festlegen</h2>
+      <label>Neues Passwort<input id="p-neu" type="password" autocomplete="new-password" minlength="10" placeholder="mindestens 10 Zeichen"></label>
+      <label>Neues Passwort wiederholen<input id="p-neu2" type="password" autocomplete="new-password" minlength="10"></label>
+      <div class="lerr" id="p-err" hidden></div>
+      <button class="btn primary block" type="submit">Passwort speichern</button>
+    </form>
+    <div class="lcard" id="waitcard" hidden>
+      <h2>Fast geschafft</h2>
+      <p class="meta" id="w-text" style="margin:0;font-size:.95rem"></p>
+      <button class="btn primary block" type="button" id="w-check">Erneut prüfen</button>
+      <button class="btn block" type="button" id="w-logout">Abmelden</button>
+    </div>
     <div class="lfoot"><button type="button" data-info="Hinweise zur Verarbeitung deiner Daten in Zündstoff">Datenschutz</button><button type="button" data-info="Angaben zum Betreiber">Impressum</button><button type="button" data-info="Bei Problemen: Administration der Sondereinheit CBRN">Hilfe</button></div>
     <footer class="wb wb-login"><span class="wb-by">Entwickelt mit</span><svg class="wb-mark" viewBox="0 0 404 290" aria-hidden="true"><polyline points="112,8 16,118 112,228" fill="none" stroke="var(--wb-dark)" stroke-width="34" stroke-linejoin="miter"/><polyline points="292,8 388,118 292,228" fill="none" stroke="var(--wb-dark)" stroke-width="34" stroke-linejoin="miter"/><polygon points="176,0 228,0 290,232 250,232 202,72 154,232 114,232" fill="var(--wb-green)"/><rect x="0" y="252" width="404" height="38" fill="var(--wb-green)"/></svg><span class="wb-txt"><b>WERKBANK</b><small>Web Application Builder</small></span><span class="wb-copy">© 2026 Sondereinheit CBRN · Feuerwehr Kleve · Alle Rechte vorbehalten</span></footer>
   </div>
@@ -258,7 +274,7 @@ ul.clean li{display:flex;justify-content:space-between;gap:8px;padding:9px 12px;
   <div class="modal">
     <div class="modal-h"><h2 id="dsTitle">Datenschutzerklärung</h2><button class="btn sm" type="button" id="closeDs">Schließen</button></div>
     <div class="modal-b">
-      <p class="meta">Platzhaltertext für den Prototyp. Die finale Fassung stimmst du mit deiner Datenschutzbeauftragten ab.</p>
+      <p class="meta">Entwurf. Die finale Fassung stimmst du mit deiner Datenschutzbeauftragten ab.</p>
       <h3>Wer ist verantwortlich?</h3><p>Verantwortlich ist der Betreiber von Zündstoff. Kontakt zur Datenschutzbeauftragten steht im Impressum.</p>
       <h3>Welche Daten speichern wir?</h3><p>Vor- und Nachname, Geburtsdatum, E-Mail-Adresse, deine Lesezeichen und ein Zugriffsprotokoll.</p>
       <h3>Wozu?</h3><p>Um dir die Unterlagen der Sondereinheit CBRN zum Nachlesen bereitzustellen und den Zugang auf Mitglieder zu beschränken.</p>
@@ -271,200 +287,389 @@ ul.clean li{display:flex;justify-content:space-between;gap:8px;padding:9px 12px;
 </div>
 <div class="toast" id="toast" hidden></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
-// ---------- Beispieldaten (in Echtbetrieb: Datenbank + Dateispeicher) ----------
-const S = {
-  me:{id:"CBRN-01", name:"Beispiel", abt:"Sondereinheit CBRN"},
-  kategorien:[
-    {id:"k1",name:"Gefahrgut & Warntafeln",kurz:"Kennzeichnung lesen und deuten"},
-    {id:"k2",name:"Einsatztaktik",kurz:"GAMS, Bereiche, Abläufe"},
-    {id:"k3",name:"Strahlenschutz",kurz:"Grundregeln und Dosimetrie"},
-    {id:"k4",name:"Messtechnik",kurz:"Geräte und Messwerte"},
-    {id:"k5",name:"Dekontamination",kurz:"Dekon-Platz und Abläufe"}
-  ],
-  inhalte:[
-    {id:"i1",kat:"k1",titel:"Warntafel: Gefahrnummer und UN-Nummer",datum:"2026-10-27",art:"warntafel",
-     kurz:"Was die beiden Zahlen auf der orangefarbenen Tafel bedeuten.",
-     text:"Oben steht die Gefahrnummer (Kemler-Zahl), unten die UN-Nummer des Stoffes. Die Gefahrnummer beschreibt die Hauptgefahr, die UN-Nummer identifiziert den Stoff eindeutig, zum Beispiel über ERI-Cards oder Datenbanken.\n\nEine verdoppelte Ziffer verstärkt die Gefahr. Ein vorangestelltes X heißt: Stoff reagiert gefährlich mit Wasser. Eine 0 an zweiter Stelle hat keine weitere Bedeutung.",
-     dateien:[]},
-    {id:"i2",kat:"k2",titel:"GAMS-Regel",datum:"2026-10-20",art:"text",
-     kurz:"Erstmaßnahmen, bis Spezialkräfte vor Ort sind.",
-     text:"G – Gefahr erkennen\nA – Absperren\nM – Menschenrettung durchführen\nS – Spezialkräfte alarmieren\n\nDie Regel gilt für die ersteintreffenden Kräfte, solange noch keine Messwerte und keine Fachberatung vorliegen.",
-     dateien:[]},
-    {id:"i3",kat:"k3",titel:"Schutz vor äußerer Strahlung",datum:"2026-10-12",art:"text",
-     kurz:"Die drei Grundregeln für den Einsatz.",
-     text:"Abstand: Die Dosisleistung nimmt mit dem Quadrat der Entfernung ab.\nAufenthaltsdauer: So kurz wie möglich im Gefahrenbereich.\nAbschirmung: Massive Gegenstände zwischen Quelle und Körper nutzen.\n\nDazu kommt: Aufnahme radioaktiver Stoffe in den Körper verhindern.",
-     dateien:[]}
-  ],
-  gemerkt:new Set(["i1"]),
-  nutzer:[
-    {id:"CBRN-01",name:"Beispiel",rolle:"Lernende",status:"aktiv"},
-    {id:"AD-0001",name:"Administration",rolle:"Admin",status:"aktiv"},
-    {id:"CBRN-neu",name:"Beispiel Neuzugang",rolle:"Lernende",status:"wartet"}
-  ],
-  protokoll:[{z:"28.10.2026 09:14",wer:"AD-0001",was:"Inhalt „Warntafel: Gefahrnummer und UN-Nummer“ veröffentlicht"}]
+// ============================================================
+//  Zündstoff CBRN · © 2026 Sondereinheit CBRN · Feuerwehr Kleve
+//  Live-Version mit Supabase (Anmeldung, Datenbank, Dateispeicher)
+// ============================================================
+const SB_URL = "https://xpqmbymrblbccldwjgcq.supabase.co";
+const SB_KEY = "sb_publishable_IJGd-nnbpvmxpHYkuBNJog_uZ03amCE"; // öffentlicher Schlüssel, darf im Code stehen
+const BUCKET = "unterlagen";
+const MAX_MB = 50;
+
+// „Angemeldet bleiben“: angehakt = localStorage, sonst nur bis zum Schließen des Browsers
+const KEEP = "zs-keep";
+const lsGet = k => { try { return localStorage.getItem(k) } catch { return null } };
+const store = {
+  getItem: k => { try { return localStorage.getItem(k) ?? sessionStorage.getItem(k) } catch { return null } },
+  setItem: (k, v) => { try { (lsGet(KEEP) === "1" ? localStorage : sessionStorage).setItem(k, v) } catch {} },
+  removeItem: k => { try { localStorage.removeItem(k); sessionStorage.removeItem(k) } catch {} }
 };
-const HEUTE = new Date("2026-10-28");
-const GEFAHR=[["2","Gase"],["3","entzündbare Flüssigkeiten"],["4","entzündbare feste Stoffe"],["5","oxidierend (brandfördernd)"],["6","giftig"],["7","radioaktiv"],["8","ätzend"],["9","spontane heftige Reaktion"],["X","reagiert gefährlich mit Wasser"]];
+const sb = window.supabase.createClient(SB_URL, SB_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: store }
+});
+
+// ---------- Zustand ----------
+const S = { me: null, kategorien: [], inhalte: [], gemerkt: new Set(), nutzer: [], protokoll: [] };
+const GEFAHR = [["2","Gase"],["3","entzündbare Flüssigkeiten"],["4","entzündbare feste Stoffe"],["5","oxidierend (brandfördernd)"],["6","giftig"],["7","radioaktiv"],["8","ätzend"],["9","spontane heftige Reaktion"],["X","reagiert gefährlich mit Wasser"]];
 
 // ---------- Hilfsfunktionen ----------
-const $ = s=>document.querySelector(s);
-const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const fmt = d=>new Date(d).toLocaleDateString("de-DE");
-const katName = id=>(S.kategorien.find(k=>k.id===id)||{}).name||"—";
-const para = t=>esc(t).split(/\n\n+/).map(p=>`<p>${p.replace(/\n/g,"<br>")}</p>`).join("");
-const groesse = b=>b>1e6?(b/1e6).toFixed(1).replace(".",",")+" MB":Math.max(1,Math.round(b/1e3))+" KB";
-function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toast._);toast._=setTimeout(()=>t.hidden=true,2400)}
-function log(was){const d=new Date();S.protokoll.unshift({z:d.toLocaleString("de-DE",{dateStyle:"short",timeStyle:"short"}),wer:role==="admin"?"AD-0001":S.me.id,was})}
-const warntafel=(o,u)=>`<div class="wt" role="img" aria-label="Warntafel ${o} über ${u}"><span>${o}</span><span>${u}</span></div>`;
-const dateiTyp=f=>f.type.startsWith("image/")?"Bild":f.type.startsWith("video/")?"Video":f.type==="application/pdf"?"PDF":"Datei";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const fmt = d => new Date(d).toLocaleDateString("de-DE");
+const fmtZeit = d => new Date(d).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+const katName = id => (S.kategorien.find(k => k.id === id) || {}).name || "Ohne Kategorie";
+const para = t => esc(t).split(/\n\n+/).filter(Boolean).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+const groesse = b => b > 1e6 ? (b / 1e6).toFixed(1).replace(".", ",") + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB";
+const dateiTyp = f => f.type.startsWith("image/") ? "Bild" : f.type.startsWith("video/") ? "Video" : f.type === "application/pdf" ? "PDF" : "Datei";
+const istAdmin = () => S.me?.rolle === "admin" && S.me?.status === "aktiv";
+const vollName = p => `${p.vorname || ""} ${p.nachname || ""}`.trim() || "Ohne Namen";
+function toast(m) { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toast._); toast._ = setTimeout(() => t.hidden = true, 3200) }
+const warntafel = (o, u) => `<div class="wt" role="img" aria-label="Warntafel ${o} über ${u}"><span>${o}</span><span>${u}</span></div>`;
+function fehlerText(e) {
+  const m = (e && (e.message || e.error_description)) || String(e);
+  if (/Invalid login credentials/i.test(m)) return "E-Mail oder Passwort stimmt nicht.";
+  if (/Email not confirmed/i.test(m)) return "Bitte bestätige zuerst deine E-Mail-Adresse über den Link in der Bestätigungsmail.";
+  if (/already registered|already been registered/i.test(m)) return "Mit dieser E-Mail-Adresse gibt es schon ein Konto. Melde dich an oder nutze „Passwort vergessen?“.";
+  if (/rate limit|too many/i.test(m)) return "Zu viele Versuche in kurzer Zeit. Bitte warte ein paar Minuten.";
+  if (/Password should be|weak/i.test(m)) return "Das Passwort ist zu schwach. Nimm mindestens 10 Zeichen mit Buchstaben und Zahlen.";
+  if (/payload too large|exceeded the maximum/i.test(m)) return `Die Datei ist zu groß. Erlaubt sind höchstens ${MAX_MB} MB.`;
+  if (/mime type|not supported/i.test(m)) return "Dieser Dateityp ist nicht erlaubt. Erlaubt sind Bilder, PDFs und Videos (MP4, WebM, MOV).";
+  if (/Failed to fetch|NetworkError/i.test(m)) return "Keine Verbindung zum Server. Prüfe deine Internetverbindung.";
+  return "Das hat nicht geklappt: " + m;
+}
+const pruefe = r => { if (r.error) throw r.error; return r.data };
+
+// ---------- Daten laden ----------
+async function ladeProfil(uid) {
+  S.me = pruefe(await sb.from("profiles").select("id,vorname,nachname,rolle,status").eq("id", uid).maybeSingle());
+}
+async function ladeAlles() {
+  const [k, i, l] = await Promise.all([
+    sb.from("kategorien").select("*").order("sortierung").order("name"),
+    sb.from("inhalte").select("*, dateien(*)").order("erstellt_am", { ascending: false }),
+    sb.from("lesezeichen").select("inhalt_id")
+  ]);
+  S.kategorien = pruefe(k); S.inhalte = pruefe(i); S.gemerkt = new Set(pruefe(l).map(x => x.inhalt_id));
+  if (istAdmin()) await ladeAdmin();
+}
+async function ladeAdmin() {
+  const [n, p] = await Promise.all([
+    sb.from("profiles").select("id,vorname,nachname,rolle,status,erstellt_am").order("erstellt_am", { ascending: false }),
+    sb.from("protokoll").select("*").order("zeit", { ascending: false }).limit(60)
+  ]);
+  S.nutzer = pruefe(n); S.protokoll = pruefe(p);
+}
+
+// ---------- Ansichten umschalten ----------
+const KARTEN = ["#loginform", "#regform", "#pwform", "#waitcard"];
+function zeigeKarte(id) {
+  $("#app").hidden = true; $("#login").hidden = false;
+  KARTEN.forEach(k => $(k).hidden = k !== id);
+  window.scrollTo(0, 0);
+}
+function zeigeApp() {
+  $("#login").hidden = true; $("#app").hidden = false;
+  $("#r-admin").hidden = !istAdmin();
+  $(".roles").hidden = !istAdmin();
+  if (!istAdmin()) role = "lern";
+  render();
+}
+function lade(an) { document.body.classList.toggle("laedt", an) }
 
 // ---------- Navigation ----------
 const TABS = {
-  lern:[["start","Übersicht"],["bib","Bibliothek"],["merk","Gemerkt"]],
-  admin:[["inhalte","Inhalte"],["neu","Hochladen"],["kat","Kategorien"],["nutzer","Mitglieder & Freigabe"],["dsgvo","Datenschutz"]]
+  lern: [["start","Übersicht"],["bib","Bibliothek"],["merk","Gemerkt"]],
+  admin: [["inhalte","Inhalte"],["neu","Hochladen"],["kat","Kategorien"],["nutzer","Mitglieder & Freigabe"],["dsgvo","Datenschutz"]]
 };
-let role="lern", tab="start", offen=null, filter={kat:"",q:""};
-function setRole(r){role=r;tab=TABS[r][0][0];offen=null;render()}
-document.querySelectorAll(".roles button").forEach(b=>b.onclick=()=>setRole(b.dataset.role));
-function render(){
-  document.querySelectorAll(".roles button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.role===role));
-  $("#tabs").innerHTML=TABS[role].map(([k,l])=>`<button id="tab-${k}" data-t="${k}" aria-current="${k===tab&&!offen}">${l}</button>`).join("");
-  $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;offen=null;render()});
+let role = "lern", tab = "start", offen = null, filter = { kat: "", q: "" };
+function setRole(r) { if (r === "admin" && !istAdmin()) return; role = r; tab = TABS[r][0][0]; offen = null; render() }
+document.querySelectorAll(".roles button").forEach(b => b.onclick = () => setRole(b.dataset.role));
+function render() {
+  document.querySelectorAll(".roles button").forEach(b => b.setAttribute("aria-pressed", b.dataset.role === role));
+  $("#tabs").innerHTML = TABS[role].map(([k, l]) => `<button id="tab-${k}" data-t="${k}" aria-current="${k === tab && !offen}">${l}</button>`).join("");
+  $("#tabs").querySelectorAll("button").forEach(b => b.onclick = () => { tab = b.dataset.t; offen = null; render() });
   $("#view").innerHTML = offen ? detail() : VIEWS[role][tab]();
-  bind(); window.scrollTo(0,0);
+  bind(); window.scrollTo(0, 0);
+  if (offen) ladeDateiLinks();
 }
 
 // ---------- Lernbereich ----------
-const VIEWS={lern:{},admin:{}};
-function karte(i){
-  const m=S.gemerkt.has(i.id);
-  return `<button class="item" data-open="${i.id}"><span class="chip c-ac">${esc(katName(i.kat))}</span>
+const VIEWS = { lern: {}, admin: {} };
+function karte(i) {
+  const m = S.gemerkt.has(i.id), n = (i.dateien || []).length;
+  return `<button class="item" data-open="${i.id}"><span class="chip c-ac">${esc(katName(i.kategorie_id))}</span>
   <h3>${esc(i.titel)}</h3><span class="meta">${esc(i.kurz)}</span>
-  <span class="row meta mono">${fmt(i.datum)}${i.dateien.length?` · ${i.dateien.length} Datei${i.dateien.length>1?"en":""}`:""}${m?" · gemerkt":""}</span></button>`;
+  <span class="row meta mono">${fmt(i.erstellt_am)}${n ? ` · ${n} Datei${n > 1 ? "en" : ""}` : ""}${m ? " · gemerkt" : ""}</span></button>`;
 }
-const neueste=()=>[...S.inhalte].sort((a,b)=>b.datum.localeCompare(a.datum));
-VIEWS.lern.start=()=>`<div class="hero"><div style="flex:1;min-width:0"><div class="eyebrow">Wissen entfachen, statt nur auswendig lernen</div>
-  <h1>Hallo${S.me.name==="Beispiel"?"":", "+esc(S.me.name)}! Was willst du auffrischen?</h1>
+const leer = (t = "Noch keine Inhalte vorhanden.") => `<div class="card"><span class="meta">${t}</span></div>`;
+VIEWS.lern.start = () => `<div class="hero"><div style="flex:1;min-width:0"><div class="eyebrow">Wissen entfachen, statt nur auswendig lernen</div>
+  <h1>Hallo, ${esc(S.me?.vorname || "")}! Was willst du auffrischen?</h1>
   <form class="search" id="suche" role="search"><input id="q" type="search" placeholder="Suche, z. B. Warntafel, GAMS, Dosimeter" aria-label="Inhalte durchsuchen"><button class="btn primary" type="submit">Suchen</button></form></div></div>
   <div class="sechead"><h2>Kategorien</h2></div>
-  <div class="cats">${S.kategorien.map(k=>{const n=S.inhalte.filter(i=>i.kat===k.id).length;return `<button class="cat" data-kat="${k.id}"><b>${esc(k.name)}</b><span class="meta">${esc(k.kurz)}</span><span class="mono meta">${n} Inhalt${n===1?"":"e"}</span></button>`}).join("")}</div>
+  <div class="cats">${S.kategorien.map(k => { const n = S.inhalte.filter(i => i.kategorie_id === k.id).length; return `<button class="cat" data-kat="${k.id}"><b>${esc(k.name)}</b><span class="meta">${esc(k.kurz)}</span><span class="mono meta">${n} Inhalt${n === 1 ? "" : "e"}</span></button>` }).join("") || leer("Noch keine Kategorien.")}</div>
   <div class="section"><div class="sechead"><h2>Zuletzt hinzugefügt</h2><button class="btn sm" data-go="bib">Alle ansehen</button></div>
-  <div class="grid">${neueste().slice(0,6).map(karte).join("")||leer()}</div></div>`;
-const leer=(t="Noch keine Inhalte. Der Admin kann im Bereich „Hochladen“ die ersten Unterlagen einstellen.")=>`<div class="card"><span class="meta">${t}</span></div>`;
-VIEWS.lern.bib=()=>{
-  const q=filter.q.toLowerCase();
-  const l=neueste().filter(i=>(!filter.kat||i.kat===filter.kat)&&(!q||(i.titel+" "+i.kurz+" "+i.text+" "+katName(i.kat)).toLowerCase().includes(q)));
+  <div class="grid">${S.inhalte.slice(0, 6).map(karte).join("") || leer(istAdmin() ? "Noch keine Inhalte. Lade im Admin-Bereich unter „Hochladen“ die ersten Unterlagen hoch." : "Noch keine Inhalte. Der Admin stellt hier bald die ersten Unterlagen ein.")}</div></div>`;
+VIEWS.lern.bib = () => {
+  const q = filter.q.toLowerCase();
+  const l = S.inhalte.filter(i => (!filter.kat || i.kategorie_id === filter.kat) && (!q || (i.titel + " " + i.kurz + " " + i.text + " " + katName(i.kategorie_id)).toLowerCase().includes(q)));
   return `<h1>Bibliothek</h1><p class="lead">Alle Unterlagen zum Nachlesen und Vertiefen.</p>
   <div class="row filters"><input id="bq" type="search" value="${esc(filter.q)}" placeholder="Suchen" aria-label="Suchen" style="flex:1;min-width:180px">
-  <select id="bk" aria-label="Kategorie" style="width:auto"><option value="">Alle Kategorien</option>${S.kategorien.map(k=>`<option value="${k.id}" ${filter.kat===k.id?"selected":""}>${esc(k.name)}</option>`).join("")}</select></div>
-  <p class="meta">${l.length} Treffer</p><div class="grid">${l.map(karte).join("")||leer("Keine Treffer. Versuch einen anderen Suchbegriff.")}</div>`;
+  <select id="bk" aria-label="Kategorie" style="width:auto"><option value="">Alle Kategorien</option>${S.kategorien.map(k => `<option value="${k.id}" ${filter.kat === k.id ? "selected" : ""}>${esc(k.name)}</option>`).join("")}</select></div>
+  <p class="meta">${l.length} Treffer</p><div class="grid">${l.map(karte).join("") || leer("Keine Treffer. Versuch einen anderen Suchbegriff.")}</div>`;
 };
-VIEWS.lern.merk=()=>{const l=S.inhalte.filter(i=>S.gemerkt.has(i.id));return `<h1>Gemerkt</h1><p class="lead">Deine Lesezeichen zum schnellen Wiederfinden.</p><div class="grid">${l.map(karte).join("")||leer("Noch nichts gemerkt. Öffne einen Inhalt und tippe auf „Merken“.")}</div>`};
+VIEWS.lern.merk = () => { const l = S.inhalte.filter(i => S.gemerkt.has(i.id)); return `<h1>Gemerkt</h1><p class="lead">Deine Lesezeichen zum schnellen Wiederfinden.</p><div class="grid">${l.map(karte).join("") || leer("Noch nichts gemerkt. Öffne einen Inhalt und tippe auf „Merken“.")}</div>` };
 
-function detail(){
-  const i=S.inhalte.find(x=>x.id===offen), m=S.gemerkt.has(i.id);
-  const extra = i.art==="warntafel" ? `<div class="wtbox">${warntafel("33","1203")}<div class="meta">Beispiel: 33 = leicht entzündbarer flüssiger Stoff, 1203 = Benzin</div></div>
-    <h2>Bedeutung der Ziffern</h2><div class="tbl"><table style="min-width:0"><tbody>${GEFAHR.map(([z,t])=>`<tr><td class="num" style="width:56px"><b>${z}</b></td><td>${t}</td></tr>`).join("")}</tbody></table></div>`:"";
+function detail() {
+  const i = S.inhalte.find(x => x.id === offen); if (!i) { offen = null; return VIEWS[role][tab]() }
+  const m = S.gemerkt.has(i.id), d = i.dateien || [];
+  const extra = i.art === "warntafel" ? `<div class="wtbox">${warntafel("33", "1203")}<div class="meta">Beispiel: 33 = leicht entzündbarer flüssiger Stoff, 1203 = Benzin</div></div>
+    <h2>Bedeutung der Ziffern</h2><div class="tbl"><table style="min-width:0"><tbody>${GEFAHR.map(([z, t]) => `<tr><td class="num" style="width:56px"><b>${z}</b></td><td>${t}</td></tr>`).join("")}</tbody></table></div>` : "";
   return `<button class="btn sm" id="zurueck">← Zurück</button>
-  <article class="reader"><span class="chip c-ac">${esc(katName(i.kat))}</span><h1>${esc(i.titel)}</h1>
-  <div class="row meta">Stand ${fmt(i.datum)}<button class="btn sm" id="merken">${m?"Gemerkt ✓":"Merken"}</button></div>
+  <article class="reader"><span class="chip c-ac">${esc(katName(i.kategorie_id))}</span><h1>${esc(i.titel)}</h1>
+  <div class="row meta">Stand ${fmt(i.geaendert_am || i.erstellt_am)}<button class="btn sm" id="merken">${m ? "Gemerkt ✓" : "Merken"}</button></div>
   <div class="prose">${para(i.text)}</div>${extra}
-  ${i.dateien.length?`<h2>Dateien</h2><div class="stack">${i.dateien.map((f,n)=>f.typ==="Bild"?`<figure class="fig"><img src="${f.url}" alt="${esc(f.name)}"><figcaption class="meta">${esc(f.name)}</figcaption></figure>`:f.typ==="Video"?`<figure class="fig"><video src="${f.url}" controls preload="metadata"></video><figcaption class="meta">${esc(f.name)}</figcaption></figure>`:`<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(f.name)}</b><span class="meta mono">${f.typ} · ${f.groesse}</span></div><span class="meta">Im Prototyp nicht als Vorschau verfügbar. In der fertigen Plattform öffnet sich die Datei hier direkt.</span></div>`).join("")}</div>`:""}
+  ${d.length ? `<h2>Dateien</h2><div class="stack">${d.map(f => `<div class="datei" data-pfad="${esc(f.pfad)}" data-typ="${esc(f.typ)}" data-name="${esc(f.name)}"><div class="card"><div class="row" style="justify-content:space-between"><b>${esc(f.name)}</b><span class="meta mono">${esc(f.typ)} · ${groesse(f.groesse)}</span></div><span class="meta">Wird geladen …</span></div></div>`).join("")}</div>` : ""}
   </article>`;
+}
+async function ladeDateiLinks() {
+  const els = [...document.querySelectorAll(".datei[data-pfad]")]; if (!els.length) return;
+  const r = await sb.storage.from(BUCKET).createSignedUrls(els.map(e => e.dataset.pfad), 3600);
+  if (r.error) { els.forEach(e => e.querySelector(".meta:last-child").textContent = "Datei konnte nicht geladen werden."); return }
+  r.data.forEach((x, n) => {
+    const e = els[n], url = x.signedUrl, name = e.dataset.name, typ = e.dataset.typ;
+    if (!url) { e.querySelector(".meta:last-child").textContent = "Datei nicht gefunden."; return }
+    e.innerHTML = typ === "Bild" ? `<figure class="fig"><img src="${esc(url)}" alt="${esc(name)}" loading="lazy"><figcaption class="meta">${esc(name)}</figcaption></figure>`
+      : typ === "Video" ? `<figure class="fig"><video src="${esc(url)}" controls preload="metadata" playsinline></video><figcaption class="meta">${esc(name)}</figcaption></figure>`
+      : `<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(name)}</b><a class="btn sm primary" href="${esc(url)}" target="_blank" rel="noopener">Öffnen</a></div></div>`;
+  });
 }
 
 // ---------- Admin ----------
-VIEWS.admin.inhalte=()=>`<h1>Inhalte</h1><p class="lead">${S.inhalte.length} veröffentlichte Unterlagen.</p>
+VIEWS.admin.inhalte = () => `<h1>Inhalte</h1><p class="lead">${S.inhalte.length} veröffentlichte Unterlagen.</p>
   <div class="row" style="margin-bottom:14px"><button class="btn primary" data-go="neu">Neuen Inhalt hochladen</button></div>
-  <div class="tbl"><table><thead><tr><th>Titel</th><th>Kategorie</th><th>Dateien</th><th>Stand</th><th></th></tr></thead><tbody>
-  ${neueste().map(i=>`<tr><td><button class="link" data-open="${i.id}">${esc(i.titel)}</button></td><td>${esc(katName(i.kat))}</td><td class="num">${i.dateien.length}</td><td class="num">${fmt(i.datum)}</td><td><button class="btn sm" data-del="${i.id}">Entfernen</button></td></tr>`).join("")}</tbody></table></div>`;
-VIEWS.admin.neu=()=>`<h1>Hochladen</h1><p class="lead">Unterlagen zum Nachlesen einstellen: Text, Bilder (z. B. Fotos von Warntafeln), PDFs oder Videos.</p>
-  <div class="card"><form class="f" id="upload"><div class="two">
-  <label>Titel<input id="u-titel" required placeholder="z. B. Gefahrzettel Klasse 3"></label>
-  <label>Kategorie<select id="u-kat">${S.kategorien.map(k=>`<option value="${k.id}">${esc(k.name)}</option>`).join("")}</select></label></div>
-  <label>Kurzbeschreibung<input id="u-kurz" placeholder="Ein Satz, worum es geht"></label>
-  <label>Text zum Nachlesen<textarea id="u-text" rows="6" placeholder="Erklärung in eigenen Worten. Leerzeile = neuer Absatz."></textarea></label>
-  <label>Dateien<input id="u-files" type="file" multiple accept="image/*,video/*,application/pdf"></label>
-  <div class="lerr" id="u-err" hidden></div>
-  <div class="row"><button class="btn primary" type="submit">Veröffentlichen</button></div></form></div>`;
-VIEWS.admin.kat=()=>`<h1>Kategorien</h1><p class="lead">Ordnen die Bibliothek. Kategorien mit Inhalten lassen sich nicht löschen.</p>
-  <ul class="clean">${S.kategorien.map(k=>{const n=S.inhalte.filter(i=>i.kat===k.id).length;return `<li><span><b>${esc(k.name)}</b> <span class="meta">· ${esc(k.kurz)}</span></span><span class="row"><span class="meta mono">${n}</span>${n?"":`<button class="btn sm" data-delkat="${k.id}">Löschen</button>`}</span></li>`}).join("")}</ul>
-  <div class="card section"><form class="f" id="neukat"><div class="two"><label>Name<input id="k-name" required placeholder="z. B. Schutzausrüstung"></label><label>Kurzbeschreibung<input id="k-kurz" placeholder="optional"></label></div><div class="row"><button class="btn primary" type="submit">Kategorie anlegen</button></div></form></div>`;
-VIEWS.admin.nutzer=()=>`<h1>Mitglieder & Freigabe</h1><p class="lead">Mitglieder registrieren sich selbst. Neue Konten werden erst aktiv, wenn der Admin sie freigibt.</p>
-  <div class="tbl"><table><thead><tr><th>Name</th><th>Rolle</th><th>Status</th><th></th></tr></thead><tbody>${S.nutzer.map((n,i)=>`<tr><td>${esc(n.name)}</td><td>${n.rolle}</td><td>${n.status==="aktiv"?'<span class="chip c-ok">aktiv</span>':'<span class="chip c-warn">wartet</span>'}</td><td>${n.status!=="aktiv"?`<button class="btn sm primary" data-frei="${i}">Freigeben</button>`:""}</td></tr>`).join("")}</tbody></table></div>`;
-VIEWS.admin.dsgvo=()=>{
-  const pkt=[["ok","Datensparsam","Gespeichert werden nur Konto, Lesezeichen und Zugriffsprotokoll. Kein Lernfortschritt, keine Testergebnisse."],["ok","Kontenfreigabe","Neue Konten erst nach Freigabe durch den Admin aktiv"],["ok","Hosting in der EU","Server-Standort Deutschland empfohlen, Verschlüsselung bei Übertragung und Speicherung"],["warn","Bildrechte und Personen auf Fotos","Nur eigene Fotos oder freigegebene Unterlagen hochladen, keine erkennbaren Personen ohne Einwilligung"],["warn","Auftragsverarbeitungsvertrag (Art. 28)","Mit Hosting-Anbieter abschließen"],["warn","Träger der Feuerwehr","Mit Stadt Kleve und deren Datenschutzbeauftragten abstimmen"]];
-  return `<h1>Datenschutz</h1><p class="lead">Grün ist im Konzept angelegt, gelb muss noch organisatorisch geklärt werden.</p>
-  <div class="card"><div class="stack">${pkt.map(([s,t,d])=>`<div class="check"><span class="dot" style="background:var(--${s})"></span><div><h3>${t}</h3><div class="meta">${d}</div></div></div>`).join("")}</div></div>
-  <div class="section"><h2>Zugriffsprotokoll</h2><ul class="clean">${S.protokoll.map(p=>`<li><span>${esc(p.was)}</span><span class="meta mono">${p.z} · ${p.wer}</span></li>`).join("")}</ul></div>`;
+  ${S.inhalte.length ? `<div class="tbl"><table><thead><tr><th>Titel</th><th>Kategorie</th><th>Dateien</th><th>Stand</th><th></th></tr></thead><tbody>
+  ${S.inhalte.map(i => `<tr><td><button class="link" data-open="${i.id}">${esc(i.titel)}</button></td><td>${esc(katName(i.kategorie_id))}</td><td class="num">${(i.dateien || []).length}</td><td class="num">${fmt(i.erstellt_am)}</td><td><button class="btn sm" data-del="${i.id}">Entfernen</button></td></tr>`).join("")}</tbody></table></div>` : leer("Noch keine Inhalte.")}`;
+VIEWS.admin.neu = () => `<h1>Hochladen</h1><p class="lead">Unterlagen zum Nachlesen einstellen: Text, Bilder (z. B. Fotos von Warntafeln), PDFs oder Videos bis ${MAX_MB} MB pro Datei.</p>
+  ${S.kategorien.length ? `<div class="card"><form class="f" id="upload"><div class="two">
+  <label>Titel<input id="u-titel" required maxlength="160" placeholder="z. B. Gefahrzettel Klasse 3"></label>
+  <label>Kategorie<select id="u-kat">${S.kategorien.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join("")}</select></label></div>
+  <label>Kurzbeschreibung<input id="u-kurz" maxlength="240" placeholder="Ein Satz, worum es geht"></label>
+  <label>Text zum Nachlesen<textarea id="u-text" rows="7" placeholder="Erklärung in eigenen Worten. Leerzeile = neuer Absatz."></textarea></label>
+  <label class="opt" style="flex-direction:row;align-items:center;gap:8px;font-weight:400"><input type="checkbox" id="u-wt" style="width:auto"> Warntafel-Erklärung mit Ziffern-Tabelle anzeigen</label>
+  <label>Dateien<input id="u-files" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,video/mp4,video/webm,video/quicktime"></label>
+  <div class="lerr" id="u-err" hidden></div><div class="note" id="u-status" hidden></div>
+  <div class="row"><button class="btn primary" type="submit" id="u-btn">Veröffentlichen</button></div></form></div>`
+  : `<div class="card"><span class="meta">Lege zuerst unter „Kategorien“ mindestens eine Kategorie an.</span></div>`}`;
+VIEWS.admin.kat = () => `<h1>Kategorien</h1><p class="lead">Ordnen die Bibliothek. Kategorien mit Inhalten lassen sich nicht löschen.</p>
+  <ul class="clean">${S.kategorien.map(k => { const n = S.inhalte.filter(i => i.kategorie_id === k.id).length; return `<li><span><b>${esc(k.name)}</b> <span class="meta">· ${esc(k.kurz)}</span></span><span class="row"><span class="meta mono">${n}</span>${n ? "" : `<button class="btn sm" data-delkat="${k.id}">Löschen</button>`}</span></li>` }).join("")}</ul>
+  <div class="card section"><form class="f" id="neukat"><div class="two"><label>Name<input id="k-name" required maxlength="80" placeholder="z. B. Schutzausrüstung"></label><label>Kurzbeschreibung<input id="k-kurz" maxlength="120" placeholder="optional"></label></div><div class="row"><button class="btn primary" type="submit">Kategorie anlegen</button></div></form></div>`;
+const statusChip = s => s === "aktiv" ? '<span class="chip c-ok">aktiv</span>' : s === "gesperrt" ? '<span class="chip c-bad">gesperrt</span>' : '<span class="chip c-warn">wartet</span>';
+VIEWS.admin.nutzer = () => {
+  const w = S.nutzer.filter(n => n.status === "wartet").length;
+  return `<h1>Mitglieder & Freigabe</h1><p class="lead">Mitglieder registrieren sich selbst. Neue Konten werden erst aktiv, wenn du sie freigibst.</p>
+  <div class="sechead" style="margin-bottom:10px"><span class="meta">${S.nutzer.length} Konten · ${w} warten auf Freigabe</span><button class="btn sm" id="reload">Aktualisieren</button></div>
+  <div class="tbl"><table><thead><tr><th>Name</th><th>Registriert</th><th>Rolle</th><th>Status</th><th></th></tr></thead><tbody>${S.nutzer.map(n => {
+    const ich = n.id === S.me.id;
+    const akt = ich ? '<span class="meta">Du</span>'
+      : n.status !== "aktiv" ? `<button class="btn sm primary" data-status="aktiv" data-uid="${n.id}">Freigeben</button>`
+      : `<button class="btn sm" data-status="gesperrt" data-uid="${n.id}">Sperren</button> ${n.rolle === "admin" ? `<button class="btn sm" data-rolle="mitglied" data-uid="${n.id}">Admin entziehen</button>` : `<button class="btn sm" data-rolle="admin" data-uid="${n.id}">Zum Admin machen</button>`}`;
+    return `<tr><td>${esc(vollName(n))}</td><td class="num">${fmt(n.erstellt_am)}</td><td>${n.rolle === "admin" ? "Admin" : "Mitglied"}</td><td>${statusChip(n.status)}</td><td><span class="row">${akt}</span></td></tr>` }).join("")}</tbody></table></div>`;
+};
+VIEWS.admin.dsgvo = () => {
+  const pkt = [["ok","Datensparsam","Gespeichert werden nur Konto, Lesezeichen und Protokoll. Kein Lernfortschritt, keine Testergebnisse."],["ok","Kontenfreigabe","Neue Konten erst nach Freigabe durch den Admin aktiv"],["ok","Hosting in der EU","Datenbank und Dateien in Frankfurt (Supabase), verschlüsselte Übertragung"],["ok","Zugriffsregeln","Ohne Login kein Zugriff, Mitglieder nur lesend, Dateien nur über zeitlich begrenzte Links"],["warn","Bildrechte und Personen auf Fotos","Nur eigene Fotos oder freigegebene Unterlagen hochladen, keine erkennbaren Personen ohne Einwilligung"],["warn","Auftragsverarbeitungsvertrag (Art. 28)","Mit Supabase abschließen (DPA im Supabase-Dashboard)"],["warn","Träger der Feuerwehr","Mit Stadt Kleve und deren Datenschutzbeauftragten abstimmen"]];
+  return `<h1>Datenschutz</h1><p class="lead">Grün ist umgesetzt, gelb muss noch organisatorisch geklärt werden.</p>
+  <div class="card"><div class="stack">${pkt.map(([s, t, d]) => `<div class="check"><span class="dot" style="background:var(--${s})"></span><div><h3>${t}</h3><div class="meta">${d}</div></div></div>`).join("")}</div></div>
+  <div class="section"><h2>Protokoll</h2>${S.protokoll.length ? `<ul class="clean">${S.protokoll.map(p => `<li><span>${esc(p.aktion)}</span><span class="meta mono">${fmtZeit(p.zeit)}</span></li>`).join("")}</ul>` : leer("Noch keine Einträge.")}</div>`;
 };
 
-// ---------- Ereignisse ----------
-function bind(){
-  document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{tab=b.dataset.go;offen=null;render()});
-  document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{offen=b.dataset.open;render()});
-  document.querySelectorAll("[data-kat]").forEach(b=>b.onclick=()=>{filter={kat:b.dataset.kat,q:""};tab="bib";render()});
-  const z=$("#zurueck"); if(z) z.onclick=()=>{offen=null;render()};
-  const mk=$("#merken"); if(mk) mk.onclick=()=>{S.gemerkt.has(offen)?S.gemerkt.delete(offen):S.gemerkt.add(offen);render()};
-  const su=$("#suche"); if(su) su.onsubmit=e=>{e.preventDefault();filter={kat:"",q:$("#q").value.trim()};tab="bib";render()};
-  const bq=$("#bq"); if(bq) bq.oninput=()=>{filter.q=bq.value;const p=bq.selectionStart;render();const n=$("#bq");n.focus();n.setSelectionRange(p,p)};
-  const bk=$("#bk"); if(bk) bk.onchange=()=>{filter.kat=bk.value;render()};
-  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const i=S.inhalte.find(x=>x.id===b.dataset.del);if(b.dataset.sure){S.inhalte=S.inhalte.filter(x=>x!==i);S.gemerkt.delete(i.id);log(`Inhalt „${i.titel}“ entfernt`);toast("Entfernt");render()}else{b.dataset.sure="1";b.textContent="Wirklich entfernen?";b.classList.add("danger")}});
-  document.querySelectorAll("[data-delkat]").forEach(b=>b.onclick=()=>{S.kategorien=S.kategorien.filter(k=>k.id!==b.dataset.delkat);render()});
-  document.querySelectorAll("[data-frei]").forEach(b=>b.onclick=()=>{const n=S.nutzer[+b.dataset.frei];n.status="aktiv";log(`Konto ${n.name} freigegeben`);toast(`${n.name} ist freigegeben`);render()});
-  const nk=$("#neukat"); if(nk) nk.onsubmit=e=>{e.preventDefault();const n=$("#k-name").value.trim();if(!n)return;S.kategorien.push({id:"k"+Date.now(),name:n,kurz:$("#k-kurz").value.trim()});log(`Kategorie „${n}“ angelegt`);toast("Kategorie angelegt");render()};
-  const up=$("#upload"); if(up) up.onsubmit=e=>{e.preventDefault();
-    const titel=$("#u-titel").value.trim(),text=$("#u-text").value.trim(),files=[...$("#u-files").files],er=$("#u-err");
-    if(!titel){er.textContent="Bitte einen Titel eingeben.";er.hidden=false;return}
-    if(!text&&!files.length){er.textContent="Bitte einen Text schreiben oder mindestens eine Datei auswählen.";er.hidden=false;return}
-    const id="i"+Date.now();
-    S.inhalte.push({id,kat:$("#u-kat").value,titel,kurz:$("#u-kurz").value.trim()||"Neu hochgeladen",text,datum:"2026-10-28",art:"text",
-      dateien:files.map(f=>({name:f.name,typ:dateiTyp(f),groesse:groesse(f.size),url:URL.createObjectURL(f)}))});
-    log(`Inhalt „${titel}“ veröffentlicht`);toast("Veröffentlicht. In der Bibliothek sichtbar.");tab="inhalte";render()};
+// ---------- Aktionen ----------
+async function aktion(fn, ok) {
+  lade(true);
+  try { await fn(); if (ok) toast(ok) }
+  catch (e) { console.error(e); toast(fehlerText(e)) }
+  finally { lade(false) }
+}
+function bind() {
+  document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { tab = b.dataset.go; offen = null; render() });
+  document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { offen = b.dataset.open; render() });
+  document.querySelectorAll("[data-kat]").forEach(b => b.onclick = () => { filter = { kat: b.dataset.kat, q: "" }; role = "lern"; tab = "bib"; render() });
+  const z = $("#zurueck"); if (z) z.onclick = () => { offen = null; render() };
+  const mk = $("#merken"); if (mk) mk.onclick = () => aktion(async () => {
+    if (S.gemerkt.has(offen)) { pruefe(await sb.from("lesezeichen").delete().eq("inhalt_id", offen).eq("user_id", S.me.id)); S.gemerkt.delete(offen) }
+    else { pruefe(await sb.from("lesezeichen").insert({ inhalt_id: offen, user_id: S.me.id })); S.gemerkt.add(offen) }
+    render();
+  });
+  const su = $("#suche"); if (su) su.onsubmit = e => { e.preventDefault(); filter = { kat: "", q: $("#q").value.trim() }; tab = "bib"; render() };
+  const bq = $("#bq"); if (bq) bq.oninput = () => { filter.q = bq.value; const p = bq.selectionStart; render(); const n = $("#bq"); n.focus(); n.setSelectionRange(p, p) };
+  const bk = $("#bk"); if (bk) bk.onchange = () => { filter.kat = bk.value; render() };
+  const rl = $("#reload"); if (rl) rl.onclick = () => aktion(async () => { await ladeAdmin(); render() });
+
+  document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+    const i = S.inhalte.find(x => x.id === b.dataset.del);
+    if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Wirklich entfernen?"; b.classList.add("danger"); return }
+    aktion(async () => {
+      const pfade = (i.dateien || []).map(d => d.pfad);
+      if (pfade.length) pruefe(await sb.storage.from(BUCKET).remove(pfade));
+      pruefe(await sb.from("inhalte").delete().eq("id", i.id));
+      S.inhalte = S.inhalte.filter(x => x !== i); S.gemerkt.delete(i.id); await ladeAdmin(); render();
+    }, "Entfernt");
+  });
+  document.querySelectorAll("[data-delkat]").forEach(b => b.onclick = () => aktion(async () => {
+    pruefe(await sb.from("kategorien").delete().eq("id", b.dataset.delkat));
+    S.kategorien = S.kategorien.filter(k => k.id !== b.dataset.delkat); render();
+  }, "Kategorie gelöscht"));
+  document.querySelectorAll("[data-status]").forEach(b => b.onclick = () => aktion(async () => {
+    pruefe(await sb.from("profiles").update({ status: b.dataset.status }).eq("id", b.dataset.uid));
+    await ladeAdmin(); render();
+  }, b.dataset.status === "aktiv" ? "Freigegeben" : "Gesperrt"));
+  document.querySelectorAll("[data-rolle]").forEach(b => b.onclick = () => aktion(async () => {
+    pruefe(await sb.from("profiles").update({ rolle: b.dataset.rolle }).eq("id", b.dataset.uid));
+    await ladeAdmin(); render();
+  }, b.dataset.rolle === "admin" ? "Ist jetzt Admin" : "Admin-Rechte entzogen"));
+
+  const nk = $("#neukat"); if (nk) nk.onsubmit = e => { e.preventDefault(); const n = $("#k-name").value.trim(); if (!n) return;
+    aktion(async () => {
+      const k = pruefe(await sb.from("kategorien").insert({ name: n, kurz: $("#k-kurz").value.trim(), sortierung: S.kategorien.length + 1 }).select().single());
+      S.kategorien.push(k); render();
+    }, "Kategorie angelegt") };
+
+  const up = $("#upload"); if (up) up.onsubmit = async e => { e.preventDefault();
+    const titel = $("#u-titel").value.trim(), text = $("#u-text").value.trim(), files = [...$("#u-files").files], er = $("#u-err"), st = $("#u-status"), btn = $("#u-btn");
+    er.hidden = true;
+    const zeig = m => { er.textContent = m; er.hidden = false };
+    if (!titel) return zeig("Bitte einen Titel eingeben.");
+    if (!text && !files.length) return zeig("Bitte einen Text schreiben oder mindestens eine Datei auswählen.");
+    const zuGross = files.find(f => f.size > MAX_MB * 1048576);
+    if (zuGross) return zeig(`„${zuGross.name}“ ist größer als ${MAX_MB} MB. Bitte verkleinern oder aufteilen.`);
+    btn.disabled = true; lade(true);
+    let inhalt = null;
+    try {
+      st.hidden = false; st.textContent = "Speichere Inhalt …";
+      inhalt = pruefe(await sb.from("inhalte").insert({ kategorie_id: $("#u-kat").value, titel, kurz: $("#u-kurz").value.trim(), text, art: $("#u-wt").checked ? "warntafel" : "text" }).select().single());
+      const rows = [];
+      for (let n = 0; n < files.length; n++) {
+        const f = files[n];
+        st.textContent = `Lade Datei ${n + 1} von ${files.length} hoch: ${f.name}`;
+        const sauber = f.name.normalize("NFKD").replace(/[^\w.\-]+/g, "_").slice(-80);
+        const pfad = `${inhalt.id}/${Date.now()}-${n}-${sauber}`;
+        pruefe(await sb.storage.from(BUCKET).upload(pfad, f, { contentType: f.type, upsert: false }));
+        rows.push({ inhalt_id: inhalt.id, pfad, name: f.name, typ: dateiTyp(f), groesse: f.size });
+      }
+      if (rows.length) pruefe(await sb.from("dateien").insert(rows));
+      await ladeAlles(); toast("Veröffentlicht. In der Bibliothek sichtbar."); tab = "inhalte"; render();
+    } catch (x) {
+      console.error(x); st.hidden = true; zeig(fehlerText(x) + (inhalt ? " Der Inhalt wurde angelegt, aber nicht alle Dateien. Du kannst ihn unter „Inhalte“ entfernen und es erneut versuchen." : ""));
+      btn.disabled = false;
+    } finally { lade(false) }
+  };
 }
 
-// ---------- Login ----------
-function einloggen(){$("#login").hidden=true;$("#app").hidden=false;role="lern";tab="start";offen=null;render();toast("Willkommen bei Zündstoff CBRN");$("#l-info").hidden=true}
-$("#loginform").onsubmit=e=>{e.preventDefault();
-  const u=$("#l-user").value.trim(),p=$("#l-pw").value,er=$("#l-err");
-  if(!u||!p){er.textContent="Bitte E-Mail und Passwort eingeben.";er.hidden=false;return}
-  er.hidden=true;einloggen()};
-$("#l-forgot").onclick=()=>toast("Ein Link zum Zurücksetzen geht an deine hinterlegte E-Mail");
-document.querySelectorAll("[data-info]").forEach(b=>b.onclick=()=>toast(b.dataset.info));
-$("#logout").onclick=()=>{$("#app").hidden=true;$("#login").hidden=false;$("#l-pw").value="";window.scrollTo(0,0)};
+// ---------- Anmeldung ----------
+async function nachLogin(session) {
+  if (!session) { zeigeKarte("#loginform"); return }
+  lade(true);
+  try {
+    await ladeProfil(session.user.id);
+    if (!S.me) { $("#w-text").textContent = "Dein Konto wird gerade eingerichtet. Versuche es in einem Moment noch einmal."; zeigeKarte("#waitcard"); return }
+    if (S.me.status !== "aktiv") {
+      $("#w-text").textContent = S.me.status === "gesperrt"
+        ? `Hallo ${S.me.vorname}, dein Konto ist gesperrt. Wende dich bitte an den Admin der Sondereinheit CBRN.`
+        : `Hallo ${S.me.vorname}, dein Konto ist angelegt und wartet auf die Freigabe durch den Admin. Schau später noch einmal vorbei.`;
+      zeigeKarte("#waitcard"); return;
+    }
+    await ladeAlles();
+    if (!zeigeApp._erst) { zeigeApp._erst = 1; role = "lern"; tab = "start"; offen = null }
+    zeigeApp();
+  } catch (e) { console.error(e); zeigeKarte("#loginform"); const er = $("#l-err"); er.textContent = fehlerText(e); er.hidden = false }
+  finally { lade(false) }
+}
+let wiederherstellung = false;
+sb.auth.onAuthStateChange((ev, session) => {
+  if (ev === "PASSWORD_RECOVERY") { wiederherstellung = true; zeigeKarte("#pwform"); return }
+  if (wiederherstellung) return;
+  if (ev === "SIGNED_OUT") { S.me = null; zeigeApp._erst = 0; zeigeKarte("#loginform"); return }
+  if (ev === "SIGNED_IN" && S.me && session && S.me.id === session.user.id && !$("#app").hidden) return; // z. B. beim Zurückwechseln in den Tab
+  if (ev === "INITIAL_SESSION" || ev === "SIGNED_IN") setTimeout(() => nachLogin(session), 0);
+});
 
-$("#toReg").onclick=()=>{$("#loginform").hidden=true;$("#regform").hidden=false;$("#r-vor").focus()};
-$("#toLogin").onclick=()=>{$("#regform").hidden=true;$("#loginform").hidden=false};
-$("#r-ds").onchange=e=>$("#r-submit").disabled=!e.target.checked;
-const dsOpen=()=>{$("#dsModal").hidden=false;$("#closeDs").focus()}, dsClose=()=>{$("#dsModal").hidden=true;$("#openDs").focus()};
-$("#openDs").onclick=dsOpen;$("#closeDs").onclick=dsClose;
-$("#acceptDs").onclick=()=>{$("#r-ds").checked=true;$("#r-submit").disabled=false;dsClose()};
-$("#dsModal").onclick=e=>{if(e.target.id==="dsModal")dsClose()};
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#dsModal").hidden)dsClose()});
-document.querySelector('[data-info^="Hinweise zur Verarbeitung"]').onclick=dsOpen;
-const parseGeb=v=>{const m=/^(\d{2})\.(\d{2})\.(\d{4})$/.exec(v||"");if(!m)return null;const [_,t,mo,j]=m.map(Number),d=new Date(j,mo-1,t);return d.getFullYear()===j&&d.getMonth()===mo-1&&d.getDate()===t&&d<=HEUTE?d:null};
-const alter=v=>{const g=parseGeb(v);if(!g)return null;let a=HEUTE.getFullYear()-g.getFullYear();const m=HEUTE.getMonth()-g.getMonth();if(m<0||(m===0&&HEUTE.getDate()<g.getDate()))a--;return a};
-const pruefeJugend=()=>{};
-$("#r-geb").oninput=e=>{const el=e.target,z=el.value.replace(/\D/g,"").slice(0,8);
-  if(e.inputType&&e.inputType.startsWith("delete")){el.value=el.value.replace(/[^\d.]/g,"");pruefeJugend();return}
-  let o=z.slice(0,2);if(z.length>=2)o+=".";o+=z.slice(2,4);if(z.length>=4)o+=".";o+=z.slice(4);
-  el.value=o;pruefeJugend()};
-$("#regform").onsubmit=e=>{e.preventDefault();const er=$("#r-err");
-  const v=$("#r-vor").value.trim(),n=$("#r-nach").value.trim(),ei="Sondereinheit CBRN",m=$("#r-mail").value.trim(),pw=$("#r-pw").value;
-  let f="";
-  if(!v||!n)f="Bitte Vor- und Nachnamen eingeben.";
-  else if(!ei)f="Bitte deine Einheit wählen.";
-  else if(alter($("#r-geb").value)===null)f="Bitte dein Geburtsdatum als TT.MM.JJJJ eingeben, z. B. 14.05.2009.";
-  else if(alter($("#r-geb").value)<18)f="Die Sondereinheit CBRN ist ab 18 Jahren. Bitte prüfe dein Geburtsdatum.";
-  else if(!/^\S+@\S+\.\S+$/.test(m))f="Bitte eine gültige E-Mail-Adresse eingeben.";
-  else if(pw.length<10)f="Das Passwort braucht mindestens 10 Zeichen.";
-  else if(!$("#r-ds").checked)f="Bitte die Datenschutzerklärung akzeptieren.";
-  if(f){er.textContent=f;er.hidden=false;return}
-  er.hidden=true;S.me.name=v;S.me.abt=ei;
-  S.nutzer.push({id:"FW-neu",name:v+" "+n,einheit:ei,rolle:"Lernende",status:"wartet"});
-  $("#regform").reset();$("#r-submit").disabled=true;$("#regform").hidden=true;$("#loginform").hidden=false;
-  $("#l-user").value=m;const li=$("#l-info");li.textContent=`Danke, ${v}! Dein Konto ist angelegt und wartet auf die Freigabe durch den Admin der Sondereinheit CBRN. Du bekommst eine E-Mail, sobald es freigeschaltet ist. Im Prototyp kannst du dich trotzdem schon anmelden.`;li.hidden=false};
+$("#l-keep").checked = lsGet(KEEP) === "1";
+$("#loginform").onsubmit = async e => { e.preventDefault();
+  const u = $("#l-user").value.trim(), p = $("#l-pw").value, er = $("#l-err");
+  if (!u || !p) { er.textContent = "Bitte E-Mail und Passwort eingeben."; er.hidden = false; return }
+  er.hidden = true;
+  try { localStorage.setItem(KEEP, $("#l-keep").checked ? "1" : "0") } catch {}
+  lade(true);
+  const r = await sb.auth.signInWithPassword({ email: u, password: p });
+  lade(false);
+  if (r.error) { er.textContent = fehlerText(r.error); er.hidden = false; return }
+  $("#l-pw").value = ""; $("#l-info").hidden = true;
+};
+$("#l-forgot").onclick = async () => {
+  const u = $("#l-user").value.trim(), er = $("#l-err"), li = $("#l-info");
+  if (!/^\S+@\S+\.\S+$/.test(u)) { er.textContent = "Trag oben deine E-Mail-Adresse ein und tippe dann noch einmal auf „Passwort vergessen?“."; er.hidden = false; return }
+  er.hidden = true; lade(true);
+  const r = await sb.auth.resetPasswordForEmail(u, { redirectTo: location.origin + location.pathname });
+  lade(false);
+  if (r.error) { er.textContent = fehlerText(r.error); er.hidden = false; return }
+  li.textContent = "Wenn es zu dieser Adresse ein Konto gibt, kommt gleich eine E-Mail mit einem Link zum Zurücksetzen."; li.hidden = false;
+};
+$("#pwform").onsubmit = async e => { e.preventDefault();
+  const p1 = $("#p-neu").value, p2 = $("#p-neu2").value, er = $("#p-err");
+  if (p1.length < 10) { er.textContent = "Das Passwort braucht mindestens 10 Zeichen."; er.hidden = false; return }
+  if (p1 !== p2) { er.textContent = "Die beiden Passwörter stimmen nicht überein."; er.hidden = false; return }
+  er.hidden = true; lade(true);
+  const r = await sb.auth.updateUser({ password: p1 });
+  lade(false);
+  if (r.error) { er.textContent = fehlerText(r.error); er.hidden = false; return }
+  wiederherstellung = false; $("#pwform").reset(); toast("Neues Passwort gespeichert");
+  history.replaceState(null, "", location.pathname);
+  const s = await sb.auth.getSession(); nachLogin(s.data.session);
+};
+$("#w-check").onclick = async () => { const s = await sb.auth.getSession(); nachLogin(s.data.session) };
+$("#w-logout").onclick = () => sb.auth.signOut();
+$("#logout").onclick = () => sb.auth.signOut();
+document.querySelectorAll("[data-info]").forEach(b => b.onclick = () => toast(b.dataset.info));
+
+// ---------- Registrierung ----------
+$("#toReg").onclick = () => { $("#loginform").hidden = true; $("#regform").hidden = false; $("#r-vor").focus() };
+$("#toLogin").onclick = () => { $("#regform").hidden = true; $("#loginform").hidden = false };
+$("#r-ds").onchange = e => $("#r-submit").disabled = !e.target.checked;
+const dsOpen = () => { $("#dsModal").hidden = false; $("#closeDs").focus() }, dsClose = () => { $("#dsModal").hidden = true };
+$("#openDs").onclick = dsOpen; $("#closeDs").onclick = dsClose;
+$("#acceptDs").onclick = () => { $("#r-ds").checked = true; $("#r-submit").disabled = false; dsClose() };
+$("#dsModal").onclick = e => { if (e.target.id === "dsModal") dsClose() };
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#dsModal").hidden) dsClose() });
+document.querySelector('[data-info^="Hinweise zur Verarbeitung"]').onclick = dsOpen;
+const HEUTE = new Date();
+const parseGeb = v => { const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(v || ""); if (!m) return null; const [, t, mo, j] = m.map(Number), d = new Date(j, mo - 1, t); return d.getFullYear() === j && d.getMonth() === mo - 1 && d.getDate() === t && d <= HEUTE ? d : null };
+const alter = v => { const g = parseGeb(v); if (!g) return null; let a = HEUTE.getFullYear() - g.getFullYear(); const m = HEUTE.getMonth() - g.getMonth(); if (m < 0 || (m === 0 && HEUTE.getDate() < g.getDate())) a--; return a };
+$("#r-geb").oninput = e => { const el = e.target, z = el.value.replace(/\D/g, "").slice(0, 8);
+  if (e.inputType && e.inputType.startsWith("delete")) { el.value = el.value.replace(/[^\d.]/g, ""); return }
+  let o = z.slice(0, 2); if (z.length >= 2) o += "."; o += z.slice(2, 4); if (z.length >= 4) o += "."; o += z.slice(4); el.value = o };
+$("#regform").onsubmit = async e => { e.preventDefault(); const er = $("#r-err");
+  const v = $("#r-vor").value.trim(), n = $("#r-nach").value.trim(), m = $("#r-mail").value.trim(), pw = $("#r-pw").value, gv = $("#r-geb").value;
+  let f = "";
+  if (!v || !n) f = "Bitte Vor- und Nachnamen eingeben.";
+  else if (alter(gv) === null) f = "Bitte dein Geburtsdatum als TT.MM.JJJJ eingeben, z. B. 14.05.1990.";
+  else if (alter(gv) < 18) f = "Die Sondereinheit CBRN ist ab 18 Jahren. Bitte prüfe dein Geburtsdatum.";
+  else if (!/^\S+@\S+\.\S+$/.test(m)) f = "Bitte eine gültige E-Mail-Adresse eingeben.";
+  else if (pw.length < 10) f = "Das Passwort braucht mindestens 10 Zeichen.";
+  else if (!$("#r-ds").checked) f = "Bitte die Datenschutzerklärung akzeptieren.";
+  if (f) { er.textContent = f; er.hidden = false; return }
+  er.hidden = true; $("#r-submit").disabled = true; lade(true);
+  const g = parseGeb(gv), iso = `${g.getFullYear()}-${String(g.getMonth() + 1).padStart(2, "0")}-${String(g.getDate()).padStart(2, "0")}`;
+  const r = await sb.auth.signUp({ email: m, password: pw, options: { data: { vorname: v, nachname: n, geburtsdatum: iso }, emailRedirectTo: location.origin + location.pathname } });
+  lade(false);
+  if (r.error) { er.textContent = fehlerText(r.error); er.hidden = false; $("#r-submit").disabled = false; return }
+  if (r.data.session) await sb.auth.signOut();
+  $("#regform").reset(); $("#r-submit").disabled = true; $("#regform").hidden = true; $("#loginform").hidden = false;
+  $("#l-user").value = m; const li = $("#l-info");
+  li.textContent = `Danke, ${v}! Wir haben dir eine E-Mail an ${m} geschickt. Bestätige darin deine Adresse. Danach wartet dein Konto auf die Freigabe durch den Admin.`;
+  li.hidden = false;
+};
+
 </script>
 
 </body>
