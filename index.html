@@ -1,3 +1,9 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Zündstoff CBRN</title>
 <!--
   Zündstoff · © 2026 Sondereinheit CBRN · Feuerwehr Kleve. Alle Rechte vorbehalten.
@@ -15,7 +21,6 @@
 <meta name="apple-mobile-web-app-title" content="Zündstoff">
 <meta name="robots" content="noindex, nofollow">
 <meta name="copyright" content="© 2026 Sondereinheit CBRN · Feuerwehr Kleve. Alle Rechte vorbehalten.">
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -53,6 +58,7 @@
   color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+body{margin:0}
 html{font-size:clamp(16px,0.55vw + 10px,20px)}
 body{background:var(--bg);color:var(--fg);font:1rem/1.5 var(--f-body)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--head)}
@@ -196,6 +202,9 @@ ul.clean li{display:flex;justify-content:space-between;gap:8px;padding:9px 12px;
 .dot{width:10px;height:10px;border-radius:50%;margin-top:7px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+</head>
+<body>
+
 
 <section class="login" id="login">
   <div class="login-in">
@@ -457,3 +466,6 @@ $("#regform").onsubmit=e=>{e.preventDefault();const er=$("#r-err");
   $("#regform").reset();$("#r-submit").disabled=true;$("#regform").hidden=true;$("#loginform").hidden=false;
   $("#l-user").value=m;const li=$("#l-info");li.textContent=`Danke, ${v}! Dein Konto ist angelegt und wartet auf die Freigabe durch den Admin der Sondereinheit CBRN. Du bekommst eine E-Mail, sobald es freigeschaltet ist. Im Prototyp kannst du dich trotzdem schon anmelden.`;li.hidden=false};
 </script>
+
+</body>
+</html>
