@@ -383,13 +383,13 @@ const TABS = {
   lern: [["start","Übersicht"],["bib","Bibliothek"],["merk","Gemerkt"]],
   admin: [["inhalte","Inhalte"],["neu","Hochladen"],["kat","Kategorien"],["nutzer","Mitglieder & Freigabe"],["dsgvo","Datenschutz"]]
 };
-let role = "lern", tab = "start", offen = null, filter = { kat: "", q: "" };
+let role = "lern", tab = "start", offen = null, filter = { kat: "", q: "" }, bearbeite = null;
 function setRole(r) { if (r === "admin" && !istAdmin()) return; role = r; tab = TABS[r][0][0]; offen = null; render() }
 document.querySelectorAll(".roles button").forEach(b => b.onclick = () => setRole(b.dataset.role));
 function render() {
   document.querySelectorAll(".roles button").forEach(b => b.setAttribute("aria-pressed", b.dataset.role === role));
   $("#tabs").innerHTML = TABS[role].map(([k, l]) => `<button id="tab-${k}" data-t="${k}" aria-current="${k === tab && !offen}">${l}</button>`).join("");
-  $("#tabs").querySelectorAll("button").forEach(b => b.onclick = () => { tab = b.dataset.t; offen = null; render() });
+  $("#tabs").querySelectorAll("button").forEach(b => b.onclick = () => { tab = b.dataset.t; offen = null; bearbeite = null; render() });
   $("#view").innerHTML = offen ? detail() : VIEWS[role][tab]();
   bind(); window.scrollTo(0, 0);
   if (offen) ladeDateiLinks();
@@ -428,7 +428,7 @@ function detail() {
     <h2>Bedeutung der Ziffern</h2><div class="tbl"><table style="min-width:0"><tbody>${GEFAHR.map(([z, t]) => `<tr><td class="num" style="width:56px"><b>${z}</b></td><td>${t}</td></tr>`).join("")}</tbody></table></div>` : "";
   return `<button class="btn sm" id="zurueck">← Zurück</button>
   <article class="reader"><span class="chip c-ac">${esc(katName(i.kategorie_id))}</span><h1>${esc(i.titel)}</h1>
-  <div class="row meta">Stand ${fmt(i.geaendert_am || i.erstellt_am)}<button class="btn sm" id="merken">${m ? "Gemerkt ✓" : "Merken"}</button></div>
+  <div class="row meta">Stand ${fmt(i.geaendert_am || i.erstellt_am)}<button class="btn sm" id="merken">${m ? "Gemerkt ✓" : "Merken"}</button>${istAdmin() ? `<button class="btn sm" data-edit="${i.id}">Bearbeiten</button>` : ""}</div>
   <div class="prose">${para(i.text)}</div>${extra}
   ${d.length ? `<h2>Dateien</h2><div class="stack">${d.map(f => `<div class="datei" data-pfad="${esc(f.pfad)}" data-typ="${esc(f.typ)}" data-name="${esc(f.name)}"><div class="card"><div class="row" style="justify-content:space-between"><b>${esc(f.name)}</b><span class="meta mono">${esc(f.typ)} · ${groesse(f.groesse)}</span></div><span class="meta">Wird geladen …</span></div></div>`).join("")}</div>` : ""}
   </article>`;
@@ -450,18 +450,24 @@ async function ladeDateiLinks() {
 VIEWS.admin.inhalte = () => `<h1>Inhalte</h1><p class="lead">${S.inhalte.length} veröffentlichte Unterlagen.</p>
   <div class="row" style="margin-bottom:14px"><button class="btn primary" data-go="neu">Neuen Inhalt hochladen</button></div>
   ${S.inhalte.length ? `<div class="tbl"><table><thead><tr><th>Titel</th><th>Kategorie</th><th>Dateien</th><th>Stand</th><th></th></tr></thead><tbody>
-  ${S.inhalte.map(i => `<tr><td><button class="link" data-open="${i.id}">${esc(i.titel)}</button></td><td>${esc(katName(i.kategorie_id))}</td><td class="num">${(i.dateien || []).length}</td><td class="num">${fmt(i.erstellt_am)}</td><td><button class="btn sm" data-del="${i.id}">Entfernen</button></td></tr>`).join("")}</tbody></table></div>` : leer("Noch keine Inhalte.")}`;
-VIEWS.admin.neu = () => `<h1>Hochladen</h1><p class="lead">Unterlagen zum Nachlesen einstellen: Text, Bilder (z. B. Fotos von Warntafeln), PDFs oder Videos bis ${MAX_MB} MB pro Datei.</p>
+  ${S.inhalte.map(i => `<tr><td><button class="link" data-open="${i.id}">${esc(i.titel)}</button></td><td>${esc(katName(i.kategorie_id))}</td><td class="num">${(i.dateien || []).length}</td><td class="num">${fmt(i.erstellt_am)}</td><td><span class="row"><button class="btn sm" data-edit="${i.id}">Bearbeiten</button><button class="btn sm" data-del="${i.id}">Entfernen</button></span></td></tr>`).join("")}</tbody></table></div>` : leer("Noch keine Inhalte.")}`;
+VIEWS.admin.neu = () => {
+  const e = bearbeite ? S.inhalte.find(x => x.id === bearbeite) : null;
+  if (bearbeite && !e) bearbeite = null;
+  const d = e?.dateien || [];
+  return `<h1>${e ? "Inhalt bearbeiten" : "Hochladen"}</h1><p class="lead">${e ? "Änderungen sind nach dem Speichern sofort für alle sichtbar." : `Unterlagen zum Nachlesen einstellen: Text, Bilder (z. B. Fotos von Warntafeln), PDFs oder Videos bis ${MAX_MB} MB pro Datei.`}</p>
   ${S.kategorien.length ? `<div class="card"><form class="f" id="upload"><div class="two">
-  <label>Titel<input id="u-titel" required maxlength="160" placeholder="z. B. Gefahrzettel Klasse 3"></label>
-  <label>Kategorie<select id="u-kat">${S.kategorien.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join("")}</select></label></div>
-  <label>Kurzbeschreibung<input id="u-kurz" maxlength="240" placeholder="Ein Satz, worum es geht"></label>
-  <label>Text zum Nachlesen<textarea id="u-text" rows="7" placeholder="Erklärung in eigenen Worten. Leerzeile = neuer Absatz."></textarea></label>
-  <label class="opt" style="flex-direction:row;align-items:center;gap:8px;font-weight:400"><input type="checkbox" id="u-wt" style="width:auto"> Warntafel-Erklärung mit Ziffern-Tabelle anzeigen</label>
-  <label>Dateien<input id="u-files" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,video/mp4,video/webm,video/quicktime"></label>
+  <label>Titel<input id="u-titel" required maxlength="160" placeholder="z. B. Gefahrzettel Klasse 3" value="${esc(e?.titel)}"></label>
+  <label>Kategorie<select id="u-kat">${S.kategorien.map(k => `<option value="${k.id}" ${e?.kategorie_id === k.id ? "selected" : ""}>${esc(k.name)}</option>`).join("")}</select></label></div>
+  <label>Kurzbeschreibung<input id="u-kurz" maxlength="240" placeholder="Ein Satz, worum es geht" value="${esc(e?.kurz)}"></label>
+  <label>Text zum Nachlesen<textarea id="u-text" rows="9" placeholder="Erklärung in eigenen Worten. Leerzeile = neuer Absatz.">${esc(e?.text)}</textarea></label>
+  <label class="opt" style="flex-direction:row;align-items:center;gap:8px;font-weight:400"><input type="checkbox" id="u-wt" style="width:auto" ${e?.art === "warntafel" ? "checked" : ""}> Warntafel-Erklärung mit Ziffern-Tabelle anzeigen</label>
+  ${d.length ? `<div><b style="font-size:.88rem">Vorhandene Dateien</b><ul class="clean" style="margin-top:6px">${d.map(f => `<li><span>${esc(f.name)} <span class="meta mono">· ${esc(f.typ)} · ${groesse(f.groesse)}</span></span><label class="opt" style="flex-direction:row;align-items:center;gap:6px;font-weight:400"><input type="checkbox" class="u-weg" value="${f.id}" style="width:auto"> entfernen</label></li>`).join("")}</ul></div>` : ""}
+  <label>${e ? "Weitere Dateien hinzufügen" : "Dateien"}<input id="u-files" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,video/mp4,video/webm,video/quicktime"></label>
   <div class="lerr" id="u-err" hidden></div><div class="note" id="u-status" hidden></div>
-  <div class="row"><button class="btn primary" type="submit" id="u-btn">Veröffentlichen</button></div></form></div>`
+  <div class="row"><button class="btn primary" type="submit" id="u-btn">${e ? "Änderungen speichern" : "Veröffentlichen"}</button>${e ? '<button class="btn" type="button" id="u-abbr">Abbrechen</button>' : ""}</div></form></div>`
   : `<div class="card"><span class="meta">Lege zuerst unter „Kategorien“ mindestens eine Kategorie an.</span></div>`}`;
+};
 VIEWS.admin.kat = () => `<h1>Kategorien</h1><p class="lead">Ordnen die Bibliothek. Kategorien mit Inhalten lassen sich nicht löschen.</p>
   <ul class="clean">${S.kategorien.map(k => { const n = S.inhalte.filter(i => i.kategorie_id === k.id).length; return `<li><span><b>${esc(k.name)}</b> <span class="meta">· ${esc(k.kurz)}</span></span><span class="row"><span class="meta mono">${n}</span>${n ? "" : `<button class="btn sm" data-delkat="${k.id}">Löschen</button>`}</span></li>` }).join("")}</ul>
   <div class="card section"><form class="f" id="neukat"><div class="two"><label>Name<input id="k-name" required maxlength="80" placeholder="z. B. Schutzausrüstung"></label><label>Kurzbeschreibung<input id="k-kurz" maxlength="120" placeholder="optional"></label></div><div class="row"><button class="btn primary" type="submit">Kategorie anlegen</button></div></form></div>`;
@@ -492,10 +498,12 @@ async function aktion(fn, ok) {
   finally { lade(false) }
 }
 function bind() {
-  document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { tab = b.dataset.go; offen = null; render() });
+  document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { tab = b.dataset.go; offen = null; bearbeite = null; render() });
   document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { offen = b.dataset.open; render() });
   document.querySelectorAll("[data-kat]").forEach(b => b.onclick = () => { filter = { kat: b.dataset.kat, q: "" }; role = "lern"; tab = "bib"; render() });
   const z = $("#zurueck"); if (z) z.onclick = () => { offen = null; render() };
+  document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => { bearbeite = b.dataset.edit; offen = null; role = "admin"; tab = "neu"; render() });
+  const ab = $("#u-abbr"); if (ab) ab.onclick = () => { bearbeite = null; tab = "inhalte"; render() };
   const mk = $("#merken"); if (mk) mk.onclick = () => aktion(async () => {
     if (S.gemerkt.has(offen)) { pruefe(await sb.from("lesezeichen").delete().eq("inhalt_id", offen).eq("user_id", S.me.id)); S.gemerkt.delete(offen) }
     else { pruefe(await sb.from("lesezeichen").insert({ inhalt_id: offen, user_id: S.me.id })); S.gemerkt.add(offen) }
@@ -540,14 +548,28 @@ function bind() {
     er.hidden = true;
     const zeig = m => { er.textContent = m; er.hidden = false };
     if (!titel) return zeig("Bitte einen Titel eingeben.");
-    if (!text && !files.length) return zeig("Bitte einen Text schreiben oder mindestens eine Datei auswählen.");
+    const alt = bearbeite ? S.inhalte.find(x => x.id === bearbeite) : null;
+    const weg = [...document.querySelectorAll(".u-weg:checked")].map(c => c.value);
+    const bleiben = (alt?.dateien || []).filter(d => !weg.includes(d.id)).length;
+    if (!text && !files.length && !bleiben) return zeig("Bitte einen Text schreiben oder mindestens eine Datei behalten bzw. auswählen.");
     const zuGross = files.find(f => f.size > MAX_MB * 1048576);
     if (zuGross) return zeig(`„${zuGross.name}“ ist größer als ${MAX_MB} MB. Bitte verkleinern oder aufteilen.`);
     btn.disabled = true; lade(true);
     let inhalt = null;
     try {
       st.hidden = false; st.textContent = "Speichere Inhalt …";
-      inhalt = pruefe(await sb.from("inhalte").insert({ kategorie_id: $("#u-kat").value, titel, kurz: $("#u-kurz").value.trim(), text, art: $("#u-wt").checked ? "warntafel" : "text" }).select().single());
+      const felder = { kategorie_id: $("#u-kat").value, titel, kurz: $("#u-kurz").value.trim(), text, art: $("#u-wt").checked ? "warntafel" : "text" };
+      if (alt) {
+        inhalt = pruefe(await sb.from("inhalte").update(felder).eq("id", alt.id).select().single());
+        const wegD = alt.dateien.filter(d => weg.includes(d.id));
+        if (wegD.length) {
+          st.textContent = "Entferne Dateien …";
+          pruefe(await sb.storage.from(BUCKET).remove(wegD.map(d => d.pfad)));
+          for (const d of wegD) pruefe(await sb.from("dateien").delete().eq("id", d.id));
+        }
+      } else {
+        inhalt = pruefe(await sb.from("inhalte").insert(felder).select().single());
+      }
       const rows = [];
       for (let n = 0; n < files.length; n++) {
         const f = files[n];
@@ -558,9 +580,9 @@ function bind() {
         rows.push({ inhalt_id: inhalt.id, pfad, name: f.name, typ: dateiTyp(f), groesse: f.size });
       }
       if (rows.length) pruefe(await sb.from("dateien").insert(rows));
-      await ladeAlles(); toast("Veröffentlicht. In der Bibliothek sichtbar."); tab = "inhalte"; render();
+      await ladeAlles(); toast(alt ? "Änderungen gespeichert" : "Veröffentlicht. In der Bibliothek sichtbar."); bearbeite = null; tab = "inhalte"; render();
     } catch (x) {
-      console.error(x); st.hidden = true; zeig(fehlerText(x) + (inhalt ? " Der Inhalt wurde angelegt, aber nicht alle Dateien. Du kannst ihn unter „Inhalte“ entfernen und es erneut versuchen." : ""));
+      console.error(x); st.hidden = true; zeig(fehlerText(x) + (inhalt && !alt ? " Der Inhalt wurde angelegt, aber nicht alle Dateien. Du kannst ihn unter „Inhalte“ bearbeiten und die Dateien erneut hinzufügen." : alt ? " Ein Teil der Änderungen ist eventuell schon gespeichert. Prüfe den Inhalt und versuche es erneut." : ""));
       btn.disabled = false;
     } finally { lade(false) }
   };
