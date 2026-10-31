@@ -368,6 +368,7 @@ function zeigeKarte(id) {
   $("#app").hidden = true; $("#login").hidden = false;
   KARTEN.forEach(k => $(k).hidden = k !== id);
   window.scrollTo(0, 0);
+  try { history.replaceState({ v: "karte", karte: id }, "") } catch {}
 }
 function zeigeApp() {
   $("#login").hidden = true; $("#app").hidden = false;
@@ -393,6 +394,7 @@ function render() {
   $("#view").innerHTML = offen ? detail() : VIEWS[role][tab]();
   bind(); window.scrollTo(0, 0);
   if (offen) ladeDateiLinks();
+  merke();
 }
 
 // ---------- Lernbereich ----------
@@ -655,10 +657,10 @@ $("#logout").onclick = () => sb.auth.signOut();
 document.querySelectorAll("[data-info]").forEach(b => b.onclick = () => toast(b.dataset.info));
 
 // ---------- Registrierung ----------
-$("#toReg").onclick = () => { $("#loginform").hidden = true; $("#regform").hidden = false; $("#r-vor").focus() };
-$("#toLogin").onclick = () => { $("#regform").hidden = true; $("#loginform").hidden = false };
+$("#toReg").onclick = () => { $("#loginform").hidden = true; $("#regform").hidden = false; history.pushState({ v: "karte", karte: "#regform" }, ""); $("#r-vor").focus() };
+$("#toLogin").onclick = () => { if (history.state?.karte === "#regform") history.back(); else { $("#regform").hidden = true; $("#loginform").hidden = false } };
 $("#r-ds").onchange = e => $("#r-submit").disabled = !e.target.checked;
-const dsOpen = () => { $("#dsModal").hidden = false; $("#closeDs").focus() }, dsClose = () => { $("#dsModal").hidden = true };
+const dsOpen = () => { $("#dsModal").hidden = false; history.pushState({ v: "modal" }, ""); $("#closeDs").focus() }, dsClose = () => { if (history.state?.v === "modal") history.back(); else $("#dsModal").hidden = true };
 $("#openDs").onclick = dsOpen; $("#closeDs").onclick = dsClose;
 $("#acceptDs").onclick = () => { $("#r-ds").checked = true; $("#r-submit").disabled = false; dsClose() };
 $("#dsModal").onclick = e => { if (e.target.id === "dsModal") dsClose() };
@@ -691,6 +693,38 @@ $("#regform").onsubmit = async e => { e.preventDefault(); const er = $("#r-err")
   li.textContent = `Danke, ${v}! Wir haben dir eine E-Mail an ${m} geschickt. Bestätige darin deine Adresse. Danach wartet dein Konto auf die Freigabe durch den Admin.`;
   li.hidden = false;
 };
+
+// ---------- Zurück-Taste des Handys / Browsers ----------
+// Jeder Seitenwechsel bekommt einen Eintrag im Verlauf. „Zurück“ springt damit
+// eine Seite zurück, statt die App zu verlassen.
+let zurueckAktiv = false;
+function merke() {
+  if (zurueckAktiv) return;
+  const st = { v: "app", role, tab, offen, bearbeite, filter: { ...filter } };
+  const cur = history.state;
+  const gleich = cur && cur.v === "app" && cur.role === st.role && cur.tab === st.tab && cur.offen === st.offen && cur.bearbeite === st.bearbeite;
+  try {
+    if (!cur || cur.v !== "app" || gleich) history.replaceState(st, "");
+    else history.pushState(st, "");
+  } catch {}
+}
+window.addEventListener("popstate", e => {
+  const st = e.state;
+  if (!$("#dsModal").hidden) { $("#dsModal").hidden = true; return }
+  if (!st) return;
+  if (st.v === "karte") {
+    if ($("#app").hidden) KARTEN.forEach(k => $(k).hidden = k !== st.karte);
+    return;
+  }
+  if (st.v === "app" && !$("#app").hidden) {
+    zurueckAktiv = true;
+    role = st.role === "admin" && !istAdmin() ? "lern" : st.role;
+    tab = st.tab; offen = st.offen; bearbeite = st.bearbeite; filter = st.filter || { kat: "", q: "" };
+    if (offen && !S.inhalte.some(i => i.id === offen)) offen = null;
+    render();
+    zurueckAktiv = false;
+  }
+});
 
 </script>
 
